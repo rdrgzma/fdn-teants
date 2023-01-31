@@ -1,34 +1,32 @@
 <?php
 namespace Fdn\models;
 use Fdn\database\Database;
+use \PDO;
 
 
 abstract class Model {
-    protected $db;
+    protected $conn;
     protected $table;
+    protected $tenantId = 1;
 
     public function __construct() {
-        $this->db = new Database();
+        if (isset($_SESSION['tenantId'])){
+            $this->tenantId = $_SESSION['tenantId'];
+        }
+        $this->conn = Database::connect()->setTenant($this->tenantId); 
     }
 
     public function all() {
-        $stmt = $this->db->pdo->prepare("SELECT * FROM {$this->table}");
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        return $this->conn->query("SELECT * FROM {$this->table}");
     }
 
     public function find($id) {
-        $stmt = $this->db->pdo->prepare("SELECT * FROM {$this->table} WHERE id = :id LIMIT 1");
-        $stmt->bindValue(':id', $id);
-        $stmt->execute();
-        return $stmt->fetchObject(get_class($this));
+        return $this->conn->query("SELECT * FROM {$this->table} WHERE id = :id LIMIT 1", ["id" => $id]);  
     }
 
     public function where($column, $value) {
-        $stmt = $this->db->pdo->prepare("SELECT * FROM {$this->table} WHERE $column = :value LIMIT 1");
-        $stmt->bindValue(':value', $value);
-        $stmt->execute();
-        return $stmt->fetchObject(get_class($this));
+        return $this->conn->query("SELECT * FROM {$this->table} WHERE $column = :value LIMIT 1", ["value" => $value]);
+        
     }
 
     public function save() {
@@ -42,8 +40,8 @@ abstract class Model {
     private function insert() {
         $columns = implode(', ', array_keys(get_object_vars($this)));
         $values = ':' . implode(', :', array_keys(get_object_vars($this)));
-        $stmt = $this->db->pdo->prepare("INSERT INTO {$this->table} ($columns) VALUES ($values)");
-        return $stmt->execute(get_object_vars($this));
+        return $this->conn->query("INSERT INTO {$this->table} ($columns) VALUES ($values)");
+        
     }
 
     private function update() {
@@ -52,7 +50,6 @@ abstract class Model {
             $updates .= "$key = :$key, ";
         }
         $updates = rtrim($updates, ', ');
-        $stmt = $this->db->pdo->prepare("UPDATE {$this->table} SET $updates WHERE id = :id");
-        return $stmt->execute(get_object_vars($this));
+        return $this->conn->query("UPDATE {$this->table} SET $updates WHERE id = :id");
     }
 }
