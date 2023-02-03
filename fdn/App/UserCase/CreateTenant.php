@@ -5,6 +5,7 @@ namespace Fdn\App\UserCase;
 use Fdn\database\Database;
 use Fdn\database\migrations\createTenantMigrations;
 use Fdn\models\Tenant;
+use Fdn\models\User;
 
 class CreateTenant
 {
@@ -152,6 +153,12 @@ class CreateTenant
         {
             $query = "INSERT INTO tenants (name, host, port, dbName, username, password) VALUES (:name, :host, :port, :dbName, :username, :password)";
             return Database::connect()->query($query,$tenant->toArray());
+        }
+
+        public function insertUser(User $user)
+        {
+            $migration = New createTenantMigrations($this->getTenant());
+            $migration->insertTableUsers($this->dbName,$user->toArray());
         }
 
 }

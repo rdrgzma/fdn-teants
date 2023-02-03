@@ -52,6 +52,34 @@ class Database
     return new static();
   }
 
+    public static function setTenantByName($tenantName)
+    {
+        self::connect();
+        $query = "SELECT * FROM tenants WHERE name = :tenantName";
+        $stmt = self::$conn->prepare($query);
+        $stmt->execute(["tenantName" => $tenantName]);
+        $stmt->setFetchMode(PDO::FETCH_ASSOC);
+        $tenant = $stmt->fetch();
+        if (!$tenant) {
+            die("Tenant não $tenantName encontrado set");
+        }
+
+        self::close();
+        // Armazene as informações da conexão do tenant nas variáveis correspondentes
+        $host = $tenant["host"];
+        $port = $tenant["port"];
+        $dbName = $tenant["dbName"];
+        $username = $tenant["username"];
+        $password = $tenant["password"];
+
+        try {
+            self::$conn = new PDO("mysql:host=$host;port=$port;dbname=$dbName", $username, $password);
+        } catch (PDOException $e) {
+            die("A conexão falhou $dbName : " . $e->getMessage());
+        }
+        return new static();
+    }
+
   public static function query($query, $params = [])
   {
 

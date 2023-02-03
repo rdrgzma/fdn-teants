@@ -31,25 +31,29 @@ class  createTenantMigrations
     public function run()
     {
         $dBName = $this->getTenant()->getDbName();
-
-        $query = "CREATE DATABASE $dBName";
-
+        $query = "CREATE DATABASE IF NOT EXISTS $dBName";
         Database::connect()->query($query);
+       Database::close();
         $this->createTable($dBName);
     }
 
-    public function createTable($dBName)
+    public function createTable($dBName): void
     {
-     $queryCreateUserTable = "CREATE TABLE User (
-  id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(250) NOT NULL,
-  username VARCHAR(250) NOT NULL,
-  email VARCHAR(250),
-  password VARCHAR(250),
-  create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  )";
-     Database::close();
-     Database::connect()->setTenant($this->getTenant()->getId())->query(Database::connect()->query($queryCreateUserTable));
+     $queryCreateUserTable = "CREATE TABLE IF NOT EXISTS $dBName.users (
+          id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(250) NOT NULL,
+          username VARCHAR(250) NOT NULL,
+          email VARCHAR(250),
+          password VARCHAR(250),
+          create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          )";
+     Database::connect()->setTenantByName($this->getTenant()->getName())->query($queryCreateUserTable);
+    }
+
+    public function insertTableUsers($dBName,$data):void
+    {
+        $query = "INSERT INTO $dBName.users (name,username,email,password) VALUES (:name, :username, :email,:password)";
+        Database::setTenantByName($dBName)->query($query,$data);
     }
 
 }
